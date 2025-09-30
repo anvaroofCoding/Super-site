@@ -1,0 +1,870 @@
+"use client";
+
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  Building,
+  Camera,
+  ArrowUpFromLine as ChartNoAxesCombined,
+  ChevronDown,
+  CreditCard,
+  FileCheck2,
+  Film,
+  Globe,
+  Info,
+  MapPin,
+  Menu,
+  Hand,
+  Phone,
+  ScanFace,
+  Send,
+  ShieldAlert as ShieldUser,
+  Sparkles,
+  Users,
+  UsersRound,
+  X,
+  Youtube,
+} from "lucide-react";
+// import { useLocale } from "next-intl";
+import Image from "next/image";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+// Move static data outside component to prevent recreating on each render
+const MENU_ITEMS = [
+  {
+    label: "Xarita",
+    href: "/metro-xaritasis",
+    icon: MapPin,
+  },
+  {
+    label: "To'lovlar",
+    href: "",
+    dropdown: true,
+    icon: CreditCard,
+    dropdownItems: [
+      { label: "To'lov turlari", href: "/tolov-turi", icon: CreditCard },
+      { label: "ATTO kartalari", href: "/atto-kartalari", icon: CreditCard },
+      {
+        label: "ATTO mobil ilovasi",
+        href: "/atto-mobile-ilovasi",
+        icon: Phone,
+      },
+      { label: "PalmPay", href: "/pay", icon: Hand },
+      { label: "FacePay", href: "/FacePay", icon: ScanFace },
+    ],
+  },
+  {
+    label: "Yo'lovchilar",
+    href: "",
+    dropdown: true,
+    icon: Users,
+    dropdownItems: [
+      {
+        label: "Metropolitenidan foydalanish qoidalari",
+        href: "/Metrodab-foydalanish-qoidalari",
+        icon: Info,
+      },
+      { label: "Davlat ramzlari", href: "/davlat-ramzlari", icon: Sparkles },
+      { label: "Murojaatlar", href: "/murojaatlar", icon: Phone },
+      {
+        label: "Yo'lovchilar statistikasi",
+        href: "/metro-statistikasi",
+        icon: ChartNoAxesCombined,
+      },
+    ],
+  },
+  {
+    label: "Axborot xizmati",
+    href: "",
+    dropdown: true,
+    icon: ShieldUser,
+    dropdownItems: [
+      { label: "Yangiliklar", href: "/yangiliklar", icon: Info },
+      { label: "Mediateka", href: "/mediateka", icon: Film },
+    ],
+  },
+  {
+    label: "Metro haqida",
+    href: "",
+    dropdown: true,
+    icon: Building,
+    dropdownItems: [
+      { label: "Tashkilot haqida", href: "/metro-tarixi", icon: Building },
+      { label: "Rahbariyat", href: "/Raxbariyat", icon: Users },
+      {
+        label: "Tarkibiy tuzilmalar",
+        href: "/tarkibiy-bolinmalar",
+        icon: Building,
+      },
+      { label: "Bo'sh ish o'rinlari", href: "/bosh-ish-orinlari", icon: Users },
+    ],
+  },
+  {
+    label: "Gender tenglik",
+    href: "",
+    dropdown: true,
+    icon: UsersRound,
+    dropdownItems: [
+      { label: "Umumiy ma'lumot", href: "umumiy-malumot", icon: Info },
+      {
+        label: "Yurtimizda gender tenglik",
+        href: "/country-gender",
+        icon: UsersRound,
+      },
+      {
+        label: "Me'yoriy hujjatlar",
+        href: "/meyoriy-xujjatlar",
+        icon: FileCheck2,
+      },
+    ],
+  },
+  {
+    label: "Bog'lanish",
+    href: "",
+    dropdown: true,
+    icon: Phone,
+    dropdownItems: [{ label: "Aloqa", href: "/contact", icon: Phone }],
+  },
+];
+
+const SOCIAL_LINKS = [
+  {
+    icon: Send,
+    href: "https://t.me/toshkent_metro",
+    name: "Telegram",
+    color: "hover:text-blue-400 hover:bg-blue-400/10",
+  },
+  {
+    icon: Camera,
+    href: "https://instagram.com/toshkent_metro",
+    name: "Instagram",
+    color: "hover:text-pink-400 hover:bg-pink-400/10",
+  },
+  {
+    icon: X,
+    href: "https://twitter.com/toshkent_metro",
+    name: "Twitter",
+    color: "hover:text-sky-400 hover:bg-sky-400/10",
+  },
+  {
+    icon: Youtube,
+    href: "https://youtube.com/toshkent_metro",
+    name: "YouTube",
+    color: "hover:text-red-500 hover:bg-red-500/10",
+  },
+];
+
+const LANGUAGES = ["UZ", "RU", "EN"];
+const SCROLL_THRESHOLD = 30;
+
+// Animation variants moved outside component
+const menuVariants = {
+  hidden: {
+    opacity: 0,
+    scale: 0.95,
+    y: -10,
+    transition: { duration: 0.2, ease: [0.23, 1, 0.32, 1] },
+  },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    y: 0,
+    transition: {
+      duration: 0.3,
+      ease: [0.23, 1, 0.32, 1],
+      staggerChildren: 0.02,
+    },
+  },
+};
+
+const dropdownVariants = {
+  hidden: {
+    opacity: 0,
+    y: -8,
+    scale: 0.96,
+    transition: { duration: 0.15, ease: [0.23, 1, 0.32, 1] },
+  },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      duration: 0.2,
+      ease: [0.23, 1, 0.32, 1],
+      staggerChildren: 0.03,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, x: -8 },
+  visible: { opacity: 1, x: 0 },
+};
+
+const mobileDropdownVariants = {
+  hidden: {
+    height: 0,
+    opacity: 0,
+    transition: { duration: 0.2, ease: [0.23, 1, 0.32, 1] },
+  },
+  visible: {
+    height: "auto",
+    opacity: 1,
+    transition: {
+      duration: 0.3,
+      ease: [0.23, 1, 0.32, 1],
+      staggerChildren: 0.05,
+    },
+  },
+};
+
+// Custom hook for scroll handling
+const useScrollDetection = () => {
+  const [isScrolled, setIsScrolled] = useState(false);
+  const scrollTimeoutRef = useRef(null);
+  const lastScrollY = useRef(0);
+  const ticking = useRef(false);
+
+  const handleScroll = useCallback(() => {
+    if (!ticking.current) {
+      requestAnimationFrame(() => {
+        const currentScrollY = window.scrollY;
+
+        if (Math.abs(currentScrollY - lastScrollY.current) > 5) {
+          const shouldBeScrolled = currentScrollY > SCROLL_THRESHOLD;
+
+          if (shouldBeScrolled !== isScrolled) {
+            if (scrollTimeoutRef.current) {
+              clearTimeout(scrollTimeoutRef.current);
+            }
+
+            scrollTimeoutRef.current = setTimeout(() => {
+              setIsScrolled(shouldBeScrolled);
+            }, 20);
+          }
+
+          lastScrollY.current = currentScrollY;
+        }
+
+        ticking.current = false;
+      });
+    }
+    ticking.current = true;
+  }, [isScrolled]);
+
+  useEffect(() => {
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, [handleScroll]);
+
+  return isScrolled;
+};
+
+// Background pattern component
+const BackgroundPattern = ({ className = "" }) => (
+  <div className={`absolute inset-0 z-0  opacity-20 ${className}`}>
+    <div
+      className="w-full h-full bg-repeat"
+      style={{
+        backgroundImage: 'url("/naqsh.png")',
+        backgroundRepeat: "repeat",
+        backgroundSize: "130px",
+      }}
+    />
+  </div>
+);
+
+// Logo component
+const Logo = () => (
+  <motion.div
+    className="flex items-center gap-2 relative z-10"
+    whileHover={{ scale: 1.02 }}
+    transition={{ duration: 0.2 }}
+  >
+    <Link href="/">
+      <motion.div
+        whileHover={{ rotate: 5, scale: 1.1 }}
+        whileTap={{ scale: 0.95 }}
+        transition={{ duration: 0.2 }}
+      >
+        <Image
+          src="/logos.png"
+          alt="Toshkent metro logo"
+          width={50}
+          height={50}
+          className="rounded-full"
+          priority
+        />
+      </motion.div>
+    </Link>
+
+    <div className="h-[40px] flex-col justify-center flex">
+      {[
+        {
+          color: "#00B0FF",
+          height: "30%",
+          delay: 0.1,
+        },
+        { color: "#FF454B", height: "5%", delay: 0.2 },
+        { color: "white", height: "30%", delay: 0.3 },
+        { color: "#FF454B", height: "5%", delay: 0.4 },
+        { color: "#00B100", height: "30%", delay: 0.5 },
+      ].map((line, index) => (
+        <motion.div
+          key={index}
+          className="w-full"
+          style={{
+            borderLeft: `2px solid ${line.color}`,
+            height: line.height,
+          }}
+          initial={{ scaleY: 0 }}
+          animate={{ scaleY: 1 }}
+          transition={{ delay: line.delay, duration: 0.3 }}
+        />
+      ))}
+    </div>
+
+    <motion.h1
+      className="text-[9px] lg:text-[10px] w-[120px] lg:w-[150px] font-medium leading-tight"
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: 0.6, duration: 0.5 }}
+    >
+      O'zbekiston Respublikasi Transport vazirligi{" "}
+      <span>"Toshkent metropoliteni"</span> DUK
+    </motion.h1>
+  </motion.div>
+);
+
+// Desktop navigation item component
+const DesktopNavItem = ({
+  item,
+  index,
+  isScrolled,
+  activeDropdown,
+  hoveredItem,
+  onDropdownClick,
+  onMouseEnter,
+  onMouseLeave,
+}) => (
+  <div
+    className="relative h-full flex items-center dropdown-container group"
+    onMouseEnter={() => onMouseEnter(index)}
+    onMouseLeave={onMouseLeave}
+  >
+    {item.dropdown ? (
+      <motion.button
+        onClick={() => onDropdownClick(index)}
+        className="px-3 py-2 text-[12px] text-gray-300 hover:text-white transition-all duration-200 relative flex items-center gap-2 rounded-lg hover:bg-white/5 group-hover:bg-white/8"
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+      >
+        {isScrolled && (
+          <item.icon className="h-4 w-4 transition-transform duration-200 group-hover:scale-110" />
+        )}
+        <span className="transition-all duration-200">{item.label}</span>
+        <motion.div
+          animate={{
+            rotate: activeDropdown === index ? 180 : 0,
+            scale: hoveredItem === index ? 1.1 : 1,
+          }}
+          transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
+        >
+          <ChevronDown className="h-4 w-4 transition-all duration-200" />
+        </motion.div>
+
+        {hoveredItem === index && (
+          <motion.div
+            className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-blue-400/15 to-purple-500/10 rounded-lg -z-10 border border-white/5"
+            layoutId="navbar-hover"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
+          />
+        )}
+      </motion.button>
+    ) : (
+      <Link href={item.href}>
+        <motion.div
+          className="px-3 py-2 text-[12px] text-gray-300 hover:text-white transition-all duration-200 relative flex items-center gap-2 rounded-lg hover:bg-white/5 group-hover:bg-white/8"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          {isScrolled && (
+            <item.icon className="h-4 w-4 transition-transform duration-200 group-hover:scale-110" />
+          )}
+          <span className="transition-all duration-200">{item.label}</span>
+          {hoveredItem === index && (
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-blue-400/15 to-purple-500/10 rounded-lg -z-10 border border-white/5"
+              layoutId="navbar-hover"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
+            />
+          )}
+        </motion.div>
+      </Link>
+    )}
+
+    {index < MENU_ITEMS.length - 1 && (
+      <motion.span
+        className="text-gray-600 mx-1 select-none"
+        animate={{
+          opacity:
+            hoveredItem === index || hoveredItem === index + 1 ? 0.2 : 0.4,
+          scale: hoveredItem === index || hoveredItem === index + 1 ? 0.8 : 1,
+        }}
+        transition={{ duration: 0.15 }}
+      >
+        |
+      </motion.span>
+    )}
+
+    <AnimatePresence>
+      {item.dropdown && activeDropdown === index && (
+        <motion.div
+          variants={dropdownVariants}
+          initial="hidden"
+          animate="visible"
+          exit="hidden"
+          className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-72 z-50"
+        >
+          <div className="bg-[#0E327F]/98 backdrop-blur-xl rounded-xl border border-white/10 overflow-hidden shadow-2xl shadow-black/20">
+            {item.dropdownItems.map((subItem, subIndex) => (
+              <motion.div
+                key={subItem.label}
+                variants={itemVariants}
+                custom={subIndex}
+              >
+                <Link
+                  href={subItem.href}
+                  onClick={() => onDropdownClick(null)}
+                  className="group block px-4 py-3 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-all duration-200 border-b border-white/5 last:border-b-0"
+                >
+                  <div className="flex items-center gap-3">
+                    <subItem.icon className="h-4 w-4 group-hover:scale-110 group-hover:text-blue-300 transition-all duration-200" />
+                    <span className="group-hover:translate-x-1 transition-transform duration-200">
+                      {subItem.label}
+                    </span>
+                  </div>
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  </div>
+);
+
+// Language selector component
+const LanguageSelector = ({
+  currentLang,
+  isLangOpen,
+  onLangClick,
+  onLanguageChange,
+  isMobile = false,
+}) => (
+  <div
+    className={`${
+      isMobile ? "flex" : "hidden lg:flex"
+    } items-center relative dropdown-container`}
+  >
+    <motion.button
+      onClick={onLangClick}
+      className="flex items-center gap-2 text-sm text-gray-300 hover:text-white transition-all duration-200 px-3 py-2 rounded-lg hover:bg-white/5 group"
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+    >
+      <motion.div
+        animate={{ rotate: isLangOpen ? 180 : 0 }}
+        transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+        className="group-hover:scale-110 transition-transform duration-200"
+      >
+        <Globe size={isMobile ? 24 : 20} />
+      </motion.div>
+      <span className="font-medium">{currentLang}</span>
+      <motion.div
+        animate={{ rotate: isLangOpen ? 180 : 0 }}
+        transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+      >
+        <ChevronDown size={16} />
+      </motion.div>
+    </motion.button>
+
+    <AnimatePresence>
+      {isLangOpen && (
+        <motion.div
+          variants={dropdownVariants}
+          initial="hidden"
+          animate="visible"
+          exit="hidden"
+          className={`absolute ${
+            isMobile ? "top-full left-0" : "top-full right-0"
+          } mt-2 w-32 bg-[#0E327F]/98 backdrop-blur-xl rounded-xl border border-white/10 overflow-hidden z-50 shadow-xl`}
+        >
+          {LANGUAGES.filter((lang) => lang !== currentLang).map(
+            (lang, index) => (
+              <motion.button
+                key={lang}
+                variants={itemVariants}
+                custom={index}
+                onClick={() => onLanguageChange(lang)}
+                className="block w-full text-left px-4 py-3 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-all duration-200 border-b border-white/5 last:border-b-0 hover:translate-x-1 font-medium"
+                whileHover={{ x: 4 }}
+              >
+                {lang}
+              </motion.button>
+            )
+          )}
+        </motion.div>
+      )}
+    </AnimatePresence>
+  </div>
+);
+
+// Mobile navigation item component
+const MobileNavItem = ({
+  item,
+  index,
+  activeDropdown,
+  setActiveDropdown,
+  closeMenu,
+}) => {
+  const isOpen = activeDropdown === index;
+
+  const handleClick = useCallback(
+    (e) => {
+      e.stopPropagation();
+      if (item.dropdown) {
+        setActiveDropdown(isOpen ? null : index);
+      } else {
+        closeMenu();
+      }
+    },
+    [item.dropdown, isOpen, index, setActiveDropdown, closeMenu]
+  );
+
+  return (
+    <motion.li
+      variants={{
+        hidden: { opacity: 0, x: -30 },
+        visible: { opacity: 1, x: 0 },
+      }}
+      className="border-b border-white/5 rounded-xl overflow-hidden backdrop-blur-sm bg-white/5"
+    >
+      <motion.div
+        className="flex justify-between items-center cursor-pointer py-4 px-5 hover:bg-white/10 transition-all duration-200 active:bg-white/15"
+        onClick={handleClick}
+        whileHover={{ x: 2 }}
+        whileTap={{ scale: 0.98 }}
+      >
+        <div className="flex items-center gap-4">
+          <motion.div
+            whileHover={{ scale: 1.1, rotate: 5 }}
+            transition={{ duration: 0.2 }}
+          >
+            <item.icon className="h-5 w-5 text-blue-200" />
+          </motion.div>
+          {item.dropdown ? (
+            <span className="hover:opacity-80 transition-opacity font-medium text-lg">
+              {item.label}
+            </span>
+          ) : (
+            <Link
+              href={item.href}
+              className="hover:opacity-80 transition-opacity font-medium text-lg"
+            >
+              {item.label}
+            </Link>
+          )}
+        </div>
+        {item.dropdown && (
+          <motion.div
+            animate={{ rotate: isOpen ? 180 : 0 }}
+            transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+          >
+            <ChevronDown className="h-5 w-5 text-white/70" />
+          </motion.div>
+        )}
+      </motion.div>
+
+      <AnimatePresence>
+        {isOpen && item.dropdown && (
+          <motion.ul
+            variants={mobileDropdownVariants}
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+            className="overflow-hidden pl-4 bg-white/5 backdrop-blur-sm "
+          >
+            {item.dropdownItems.map((subItem, subIndex) => (
+              <motion.li
+                key={subItem.label}
+                variants={itemVariants}
+                custom={subIndex}
+                className="py-3 px-4"
+              >
+                <Link
+                  href={subItem.href}
+                  onClick={closeMenu}
+                  className="text-white/80 hover:text-white transition-all duration-200 text-base flex items-center gap-3 hover:translate-x-2 group"
+                >
+                  <motion.div
+                    whileHover={{ scale: 1.1 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <subItem.icon className="h-4 w-4 text-blue-300 group-hover:text-blue-200" />
+                  </motion.div>
+                  <span>{subItem.label}</span>
+                </Link>
+              </motion.li>
+            ))}
+          </motion.ul>
+        )}
+      </AnimatePresence>
+    </motion.li>
+  );
+};
+
+// Main component
+export default function MetroNavbar() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [activeDropdown, setActiveDropdown] = useState(null);
+  const [isLangOpen, setIsLangOpen] = useState(false);
+  const [currentLang, setCurrentLang] = useState("UZ");
+  const [hoveredItem, setHoveredItem] = useState(null);
+
+  // const locale = useLocale();
+  const router = useRouter();
+  const pathname = usePathname();
+  const isScrolled = useScrollDetection();
+
+  const parts = pathname.split("/").filter(Boolean);
+  const isHiddenPath =
+    parts[1] === "metro-xaritasis" || parts[1] === "normalMap";
+
+  // useEffect(() => {
+  //   setCurrentLang(locale.toUpperCase());
+  // }, [locale]);
+
+  const changeLanguage = useCallback(
+    (lang) => {
+      const segments = pathname.split("/");
+      segments[1] = lang.toLowerCase();
+      router.push(segments.join("/"));
+    },
+    [pathname, router]
+  );
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      const target = event.target;
+      if (!isMenuOpen && !target.closest(".dropdown-container")) {
+        setActiveDropdown(null);
+        setIsLangOpen(false);
+      }
+    };
+
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, [isMenuOpen]);
+
+  const toggleMenu = useCallback(
+    () => setIsMenuOpen(!isMenuOpen),
+    [isMenuOpen]
+  );
+
+  const handleDropdownClick = useCallback(
+    (index) => {
+      setActiveDropdown(activeDropdown === index ? null : index);
+    },
+    [activeDropdown]
+  );
+
+  const handleLangClick = useCallback(() => {
+    setIsLangOpen(!isLangOpen);
+    setActiveDropdown(null);
+  }, [isLangOpen]);
+
+  const handleLanguageChange = useCallback(
+    (lang) => {
+      setCurrentLang(lang);
+      setIsLangOpen(false);
+      changeLanguage(lang);
+    },
+    [changeLanguage]
+  );
+
+  const handleMouseEnter = useCallback((index) => {
+    setHoveredItem(index);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setHoveredItem(null);
+  }, []);
+
+  const closeMenu = useCallback(() => {
+    setIsMenuOpen(false);
+  }, []);
+
+  if (isHiddenPath) return null;
+
+  return (
+    <>
+      <header
+        className={`sticky top-0 left-0 w-full z-50 transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${
+          isScrolled
+            ? "bg-gradient-to-r from-[#0E327F]/98 via-blue-800/98 to-[#0E327F]/98 backdrop-blur-xl pt-0 shadow-lg shadow-black/10"
+            : "bg-transparent pt-5"
+        }`}
+      >
+        <div
+          className={`transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${
+            isScrolled ? "container-none px-0" : "container"
+          }`}
+        >
+          <div
+            className={`flex items-center justify-between h-[70px] text-white transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] transform ${
+              isScrolled
+                ? "bg-transparent px-8 mx-0 rounded-none"
+                : "bg-gradient-to-r from-[#0E327F] via-blue-800 to-[#0E327F] px-6 rounded-2xl backdrop-blur-lg shadow-xl shadow-black/10"
+            }`}
+          >
+            <BackgroundPattern />
+
+            <Logo />
+
+            <nav className="hidden xl:flex items-center space-x-1">
+              {MENU_ITEMS.map((item, index) => (
+                <DesktopNavItem
+                  key={item.label}
+                  item={item}
+                  index={index}
+                  isScrolled={isScrolled}
+                  activeDropdown={activeDropdown}
+                  hoveredItem={hoveredItem}
+                  onDropdownClick={handleDropdownClick}
+                  onMouseEnter={handleMouseEnter}
+                  onMouseLeave={handleMouseLeave}
+                />
+              ))}
+            </nav>
+
+            <div className="flex items-center gap-3">
+              <LanguageSelector
+                currentLang={currentLang}
+                isLangOpen={isLangOpen}
+                onLangClick={handleLangClick}
+                onLanguageChange={handleLanguageChange}
+              />
+
+              <motion.button
+                onClick={toggleMenu}
+                className="xl:hidden z-50 text-white p-2 rounded-lg hover:bg-white/10 transition-all duration-200 active:bg-white/20"
+                aria-label="Toggle menu"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <motion.div
+                  animate={{ rotate: isMenuOpen ? 90 : 0 }}
+                  transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+                >
+                  {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
+                </motion.div>
+              </motion.button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <AnimatePresence>
+        {isMenuOpen && (
+          <motion.div
+            variants={menuVariants}
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+            className="fixed  inset-0 bg-gradient-to-br from-blue-900/98 via-blue-800/98 to-[#0E327F]/98 z-40 flex flex-col backdrop-blur-xl"
+          >
+            <BackgroundPattern />
+
+            <nav className="container pt-30 pb-8 flex-1 overflow-y-auto ">
+              <motion.ul
+                initial="hidden"
+                animate="visible"
+                variants={{
+                  visible: { transition: { staggerChildren: 0.08 } },
+                }}
+                className="flex flex-col text-xl text-white space-y-4"
+              >
+                {MENU_ITEMS.map((item, index) => (
+                  <MobileNavItem
+                    key={item.label}
+                    item={item}
+                    index={index}
+                    activeDropdown={activeDropdown}
+                    setActiveDropdown={setActiveDropdown}
+                    closeMenu={closeMenu}
+                  />
+                ))}
+              </motion.ul>
+            </nav>
+
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4, duration: 0.4 }}
+              className="container py-6 pb-10 border-t border-white/10"
+            >
+              <div className="flex justify-center mb-6">
+                <LanguageSelector
+                  currentLang={currentLang}
+                  isLangOpen={isLangOpen}
+                  onLangClick={handleLangClick}
+                  onLanguageChange={handleLanguageChange}
+                  isMobile={true}
+                />
+              </div>
+
+              <motion.div
+                className="w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent mb-6"
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: 1 }}
+                transition={{ delay: 0.6, duration: 0.4 }}
+              />
+
+              <div className="flex justify-center gap-6">
+                {SOCIAL_LINKS.map((social, index) => (
+                  <motion.a
+                    key={social.name}
+                    href={social.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`text-white/70 transition-all duration-200 p-3 rounded-full backdrop-blur-sm border border-white/10 ${social.color}`}
+                    initial={{ opacity: 0, y: 20, scale: 0.8 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ delay: 0.7 + index * 0.1, duration: 0.3 }}
+                    whileHover={{ scale: 1.1, y: -2 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <social.icon className="h-6 w-6" />
+                  </motion.a>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
