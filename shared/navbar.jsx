@@ -178,6 +178,21 @@ const menuVariants = {
   },
 };
 
+const mobileMenuVariants = {
+  hidden: {
+    x: "100%",
+    transition: { duration: 0.3, ease: [0.23, 1, 0.32, 1] },
+  },
+  visible: {
+    x: 0,
+    transition: {
+      duration: 0.3,
+      ease: [0.23, 1, 0.32, 1],
+      staggerChildren: 0.08,
+    },
+  },
+};
+
 const dropdownVariants = {
   hidden: {
     opacity: 0,
@@ -790,15 +805,27 @@ export default function MetroNavbar() {
       <AnimatePresence>
         {isMenuOpen && (
           <motion.div
-            variants={menuVariants}
+            variants={mobileMenuVariants}
             initial="hidden"
             animate="visible"
             exit="hidden"
-            className="fixed  inset-0 bg-gradient-to-br from-blue-900/98 via-blue-800/98 to-[#0E327F]/98 z-40 flex flex-col backdrop-blur-xl"
+            className="fixed top-0 right-0 bottom-0 w-full sm:w-[400px] md:w-[450px] bg-gradient-to-br from-blue-900/98 via-blue-800/98 to-[#0E327F]/98 z-40 flex flex-col backdrop-blur-xl shadow-2xl"
           >
             <BackgroundPattern />
 
-            <nav className="container pt-30 pb-8 flex-1 overflow-y-auto ">
+            <div className="container pt-24 pb-4 border-b border-white/10">
+              <motion.button
+                onClick={toggleMenu}
+                className="ml-auto flex items-center gap-2 text-white p-2 rounded-lg hover:bg-white/10 transition-all duration-200"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 }}
+              ></motion.button>
+            </div>
+
+            <nav className="container pt-6 pb-8 flex-1 overflow-y-auto">
               <motion.ul
                 initial="hidden"
                 animate="visible"
